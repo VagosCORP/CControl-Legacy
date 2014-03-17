@@ -1,5 +1,6 @@
 package com.vagoscorp.ccontrol;
 
+import libraries.vagoscorp.comunication.android.Comunic;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -38,6 +39,7 @@ public class MainActivity extends Activity implements OnTouchListener,SensorEven
 	SurfaceHolder incliHolder;
 	Thread acelThread;
 	Thread incliThread;
+	Comunic comunic;
 	
 	boolean runn = false;
 	float x = 0;
@@ -111,6 +113,7 @@ public class MainActivity extends Activity implements OnTouchListener,SensorEven
 		sensorManager=(SensorManager) getSystemService(SENSOR_SERVICE);
         sensorManager.registerListener(this, sensorManager.getDefaultSensor(
         		Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+        comunic = new Comunic(this, "10.0.0.20", 2000);
 	}
 
 	@Override
@@ -243,10 +246,23 @@ public class MainActivity extends Activity implements OnTouchListener,SensorEven
 				if (!incliHolder.getSurface().isValid()) 
 					continue;
 				incliCanvas = incliHolder.lockCanvas();
-//				float width = incliCanvas.getWidth();
-//				float height = incliCanvas.getHeight();
+				float w = incliCanvas.getWidth();
+				float h = incliCanvas.getHeight();
+				float ws = (float)w/20;
 //				incliCanvas.drawColor(Color.GREEN);
 				incliCanvas.drawARGB(255, 89, 126, 163);
+				if(ay < 0) {
+					incliCanvas.drawRect((float)w/2 + (float)ws*ay, 0, (float)w/2, h, surfPaint);
+					if(ay < -2) {
+						incliCanvas.drawRect((float)w/2 + (float)ws*ay, 0, (float)w/2-(float)ws*2, h, msurfPaint);
+					}
+				}
+				else if(ay > 0) {
+					incliCanvas.drawRect((float)w/2, 0, (float)w/2 + (float)ws*ay, h, surfPaint);
+					if(ay > 2) {
+						incliCanvas.drawRect((float)w/2+(float)ws*2, 0, (float)w/2 + (float)ws*ay, h, msurfPaint);
+					}
+				}
 				incliHolder.unlockCanvasAndPost(incliCanvas);
 				try {
 					sleep(20);
