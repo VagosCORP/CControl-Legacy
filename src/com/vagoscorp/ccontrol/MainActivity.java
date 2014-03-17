@@ -7,6 +7,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -16,14 +20,18 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
-public class MainActivity extends Activity implements OnTouchListener {
+public class MainActivity extends Activity implements OnTouchListener,SensorEventListener {
 
 	SurfaceView acel;
 	SurfaceView incli;
 	ToggleButton turbo;
 	Button freno;
+	TextView textView1;
+	TextView textView2;
+	TextView textView3;
 	Canvas acelCanvas;
 	Canvas incliCanvas;
 	SurfaceHolder acelHolder;
@@ -36,9 +44,13 @@ public class MainActivity extends Activity implements OnTouchListener {
 	float y = 0;
 	float dx = 0;
 	float dy = 0;
-
+	float dead = 0;
 	float width;
 	float height;
+	
+	float ax = 0;
+	float ay = 0;
+	float az = 0;
 	
 	boolean frenando = false;
 	
@@ -49,6 +61,7 @@ public class MainActivity extends Activity implements OnTouchListener {
 	Paint acelPaint = new Paint();
 	Bitmap border;
 	
+	SensorManager sensorManager;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +72,9 @@ public class MainActivity extends Activity implements OnTouchListener {
 		incli = (SurfaceView)findViewById(R.id.incli);
 		turbo = (ToggleButton)findViewById(R.id.turbo);
 		freno = (Button)findViewById(R.id.freno);
+		textView1 = (TextView)findViewById(R.id.textView1);
+		textView2 = (TextView)findViewById(R.id.textView2);
+		textView3 = (TextView)findViewById(R.id.textView3);
 		
 		touch.setColor(Color.BLUE);
 		touch.setAntiAlias(true);
@@ -82,7 +98,7 @@ public class MainActivity extends Activity implements OnTouchListener {
 			public boolean onTouch(View v, MotionEvent event) {
 				frenando = true;
 				x = width/2;
-				y = height;
+				y = dead;
 				v.setBackgroundColor(Color.rgb(89, 126, 163));
 //				v.setBackgroundResource(android.R.drawable.button_onoff_indicator_off);
 				if(event.getAction() == MotionEvent.ACTION_UP) {
@@ -92,6 +108,9 @@ public class MainActivity extends Activity implements OnTouchListener {
 				return true;
 			}
 		});
+		sensorManager=(SensorManager) getSystemService(SENSOR_SERVICE);
+        sensorManager.registerListener(this, sensorManager.getDefaultSensor(
+        		Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
 	}
 
 	@Override
@@ -127,16 +146,37 @@ public class MainActivity extends Activity implements OnTouchListener {
 			x = width;
 		if(y >= height)
 			y = height;
-		canvas.drawRect(0, y, width, height, surfPaint);
-		if(y < 400*dy) {
-			canvas.drawRect(0, y, width, height, msurfPaint);
-		}
-		if(y < 100*dy) {
-			canvas.drawRect(0, y, width, height, hsurfPaint);
+		if(y < dead) {
+			canvas.drawRect(0, y, width, dead, surfPaint);
+			if(y < 300*dy) {
+				canvas.drawRect(0, y, width, dead, msurfPaint);
+			}
+			if(y < 100*dy) {
+				canvas.drawRect(0, y, width, dead, hsurfPaint);
+			}
+		}else {
+			canvas.drawRect(0, dead, width, y, msurfPaint);
 		}
 //		canvas.drawRect(0, y-25, width, y+25, acelPaint);
 		canvas.drawBitmap(border, null, new RectF(0, y-(float)25*dy, width, y+(float)25*dy), null);
 //		canvas.drawCircle(x, y, 50, touch);
+	}
+	
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		if (event.sensor.getType()==Sensor.TYPE_ACCELEROMETER){
+            ax=event.values[0];
+            ay=event.values[1];
+            az=event.values[2];
+            textView1.setText("X = "+ax);
+            textView2.setText("X = "+ay);
+            textView3.setText("X = "+az);
+        }
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+		
 	}
 	
 	public void turbo(View view) {
@@ -151,7 +191,7 @@ public class MainActivity extends Activity implements OnTouchListener {
 		}
 		if(event.getAction() == MotionEvent.ACTION_UP) {
 			x = width/2;
-			y = height;
+			y = dead;
 		}
 		return true;
 	}
@@ -177,7 +217,8 @@ public class MainActivity extends Activity implements OnTouchListener {
 					dx = (float)width/1000;
 					dy = (float)height/1000;
 					x = width/2;
-					y = height;
+					dead = (float)666*dy;
+					y = dead;
 					first =  false;
 				}
 				acelCanvas.drawColor(Color.DKGRAY);
@@ -204,8 +245,8 @@ public class MainActivity extends Activity implements OnTouchListener {
 				incliCanvas = incliHolder.lockCanvas();
 //				float width = incliCanvas.getWidth();
 //				float height = incliCanvas.getHeight();
-				incliCanvas.drawColor(Color.GREEN);
-//				incliCanvas.drawARGB(255, 89, 126, 163);
+//				incliCanvas.drawColor(Color.GREEN);
+				incliCanvas.drawARGB(255, 89, 126, 163);
 				incliHolder.unlockCanvasAndPost(incliCanvas);
 				try {
 					sleep(20);
@@ -215,7 +256,6 @@ public class MainActivity extends Activity implements OnTouchListener {
 			}
 			super.run();
 		}
-		
 	}
 	
 	@Override
