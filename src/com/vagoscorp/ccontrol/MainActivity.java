@@ -1,9 +1,12 @@
 package com.vagoscorp.ccontrol;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -12,6 +15,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.widget.Button;
 import android.widget.ToggleButton;
 
 public class MainActivity extends Activity implements OnTouchListener {
@@ -19,6 +23,7 @@ public class MainActivity extends Activity implements OnTouchListener {
 	SurfaceView acel;
 	SurfaceView incli;
 	ToggleButton turbo;
+	Button freno;
 	Canvas acelCanvas;
 	Canvas incliCanvas;
 	SurfaceHolder acelHolder;
@@ -29,11 +34,21 @@ public class MainActivity extends Activity implements OnTouchListener {
 	boolean runn = false;
 	float x = 0;
 	float y = 0;
-	
+	float dx = 0;
+	float dy = 0;
+
 	float width;
 	float height;
 	
+	boolean frenando = false;
+	
 	Paint touch = new Paint();
+	Paint surfPaint = new Paint();
+	Paint msurfPaint = new Paint();
+	Paint hsurfPaint = new Paint();
+	Paint acelPaint = new Paint();
+	Bitmap border;
+	
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -43,17 +58,40 @@ public class MainActivity extends Activity implements OnTouchListener {
 		acel = (SurfaceView)findViewById(R.id.acel);
 		incli = (SurfaceView)findViewById(R.id.incli);
 		turbo = (ToggleButton)findViewById(R.id.turbo);
+		freno = (Button)findViewById(R.id.freno);
 		
-		touch.setColor(Color.DKGRAY);
+		touch.setColor(Color.BLUE);
 		touch.setAntiAlias(true);
 		touch.setStrokeWidth(2);
 		touch.setStrokeCap(Paint.Cap.ROUND);
 		touch.setStyle(Paint.Style.STROKE);
+		acelPaint.setColor(Color.BLACK);
+		surfPaint.setColor(Color.YELLOW);
+		msurfPaint.setARGB(255, 255, 111, 0);
+		hsurfPaint.setColor(Color.RED);
+		
+		border = BitmapFactory.decodeResource(getResources(), R.drawable.border);
 		
 		acelHolder = acel.getHolder();
 		incliHolder = incli.getHolder();
 		
 		acel.setOnTouchListener(this);
+		freno.setOnTouchListener(new OnTouchListener() {
+			
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				frenando = true;
+				x = width/2;
+				y = height;
+				v.setBackgroundColor(Color.rgb(89, 126, 163));
+//				v.setBackgroundResource(android.R.drawable.button_onoff_indicator_off);
+				if(event.getAction() == MotionEvent.ACTION_UP) {
+					v.setBackgroundResource(android.R.drawable.btn_default/*btn_default_holo_light*/);
+					frenando = false;
+				}
+				return true;
+			}
+		});
 	}
 
 	@Override
@@ -89,13 +127,32 @@ public class MainActivity extends Activity implements OnTouchListener {
 			x = width;
 		if(y >= height)
 			y = height;
-		canvas.drawCircle(x, y, 50, touch);
+		canvas.drawRect(0, y, width, height, surfPaint);
+		if(y < 400*dy) {
+			canvas.drawRect(0, y, width, height, msurfPaint);
+		}
+		if(y < 100*dy) {
+			canvas.drawRect(0, y, width, height, hsurfPaint);
+		}
+//		canvas.drawRect(0, y-25, width, y+25, acelPaint);
+		canvas.drawBitmap(border, null, new RectF(0, y-(float)25*dy, width, y+(float)25*dy), null);
+//		canvas.drawCircle(x, y, 50, touch);
+	}
+	
+	public void turbo(View view) {
+		
 	}
 	
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
-		x = event.getX();
-		y = event.getY();
+		if(!frenando) {
+			x = event.getX();
+			y = event.getY();
+		}
+		if(event.getAction() == MotionEvent.ACTION_UP) {
+			x = width/2;
+			y = height;
+		}
 		return true;
 	}
 
@@ -109,13 +166,22 @@ public class MainActivity extends Activity implements OnTouchListener {
 
 		@Override
 		public void run() {
+			boolean first = true;
 			while (runn) {
 				if (!acelHolder.getSurface().isValid())
 					continue;
 				acelCanvas = acelHolder.lockCanvas();
-				width = acelCanvas.getWidth();
-				height = acelCanvas.getHeight();
-				acelCanvas.drawColor(Color.BLUE);
+				if(first) {
+					width = acelCanvas.getWidth();
+					height = acelCanvas.getHeight();
+					dx = (float)width/1000;
+					dy = (float)height/1000;
+					x = width/2;
+					y = height;
+					first =  false;
+				}
+				acelCanvas.drawColor(Color.DKGRAY);
+//				acelCanvas.drawARGB(255, 89, 126, 163); 
 				drawtouch(acelCanvas);
 				acelHolder.unlockCanvasAndPost(acelCanvas);
 				try {
@@ -126,7 +192,6 @@ public class MainActivity extends Activity implements OnTouchListener {
 			}
 			super.run();
 		}
-		
 	}
 	
 	public class runIncli extends Thread {
@@ -134,12 +199,13 @@ public class MainActivity extends Activity implements OnTouchListener {
 		@Override
 		public void run() {
 			while (runn) {
-				if (!incliHolder.getSurface().isValid())
+				if (!incliHolder.getSurface().isValid()) 
 					continue;
 				incliCanvas = incliHolder.lockCanvas();
 //				float width = incliCanvas.getWidth();
 //				float height = incliCanvas.getHeight();
 				incliCanvas.drawColor(Color.GREEN);
+//				incliCanvas.drawARGB(255, 89, 126, 163);
 				incliHolder.unlockCanvasAndPost(incliCanvas);
 				try {
 					sleep(20);
