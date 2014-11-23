@@ -1,6 +1,6 @@
 package com.vagoscorp.ccontrol;
 
-import libraries.vagoscorp.comunication.android.Comunic;
+import vclibs.communication.android.Comunic;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
